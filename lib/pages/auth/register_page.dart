@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pbl_jawara_test/widgets/login/custom_text_field.dart';
+import 'package:pbl_jawara_test/services/auth_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -14,7 +15,9 @@ class _RegisterPageState extends State<RegisterPage> {
   final _namaController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authService = AuthService();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -24,21 +27,48 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  void _handleRegister() {
+  Future<void> _handleRegister() async {
     if (_formKey.currentState!.validate()) {
-      // Implementasi register di sini
       FocusScope.of(context).unfocus();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registrasi berhasil!'),
-          backgroundColor: Color(0xFF808080),
-          duration: Duration(milliseconds: 800),
-        ),
-      );
-      Future.delayed(const Duration(milliseconds: 800), () {
-        // ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        Navigator.pop(context);
+
+      setState(() {
+        _isLoading = true;
       });
+
+      final result = await _authService.register(
+        _namaController.text,
+        _emailController.text,
+        _passwordController.text,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (result['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registrasi berhasil!'),
+            backgroundColor: Color(0xFF00BFA5),
+            duration: Duration(milliseconds: 800),
+          ),
+        );
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (mounted) {
+            Navigator.pop(context);
+          }
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Registrasi gagal'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -193,7 +223,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           // Register Button
                           ElevatedButton(
                             key: const Key('registerButton'),
-                            onPressed: _handleRegister,
+                            onPressed: _isLoading ? null : _handleRegister,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF00BFA5),
                               foregroundColor: Colors.white,
@@ -203,13 +233,24 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                               elevation: 0,
                             ),
-                            child: const Text(
-                              'Daftar',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Daftar',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                           ),
                           const SizedBox(height: 16),
 

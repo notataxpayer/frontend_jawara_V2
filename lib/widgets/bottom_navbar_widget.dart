@@ -15,7 +15,7 @@ class _BottomNavbarWidgetState extends State<BottomNavbarWidget> {
     if (location.startsWith('/home')) return 0;
     if (location.startsWith('/marketplace')) return 1;
     if (location.startsWith('/menu-popup')) return 2;
-    if (location.startsWith('/pengguna')) return 3;
+    if (location.startsWith('/user-management')) return 3;
     return 0;
   }
 
@@ -32,6 +32,7 @@ class _BottomNavbarWidgetState extends State<BottomNavbarWidget> {
         break;
       case 3:
         // pengguna
+        context.go('/user-management');
         break;
     }
   }
