@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pbl_jawara_test/pages/auth/register_page.dart';
 import 'package:pbl_jawara_test/widgets/login/custom_text_field.dart';
 import 'package:pbl_jawara_test/services/auth_service.dart';
+import 'package:pbl_jawara_test/utils/user_storage.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -41,15 +42,39 @@ class _LoginPageState extends State<LoginPage> {
         if (!mounted) return;
 
         if (result['success']) {
+          // Simpan token dan user data
+          print('=== LOGIN RESULT ===');
+          print('Full result: $result');
+          
+          // Response structure: {success: true, data: {success: true, data: {user: {...}, token: ...}}}
+          final outerData = result['data'] as Map<String, dynamic>? ?? {};
+          final innerData = outerData['data'] as Map<String, dynamic>? ?? {};
+          
+          print('Outer data: $outerData');
+          print('Inner data: $innerData');
+          
+          final token = innerData['token']?.toString() ?? '';
+          final user = innerData['user'] as Map<String, dynamic>? ?? {};
+          
+          print('Token length: ${token.length}');
+          print('Token: ${token.length > 20 ? "${token.substring(0, 20)}..." : token}');
+          print('User data: $user');
+          print('User nama: ${user['nama']}');
+          print('==================');
+          
+          await UserStorage.saveUserData(
+            token: token,
+            userData: user,
+          );
+
+          if (!mounted) return;
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Login Berhasil!'),
               backgroundColor: Color(0xFF00BFA5),
             ),
           );
-
-          // Simpan token atau user data jika ada
-          // await _saveUserData(result['data']);
 
           Future.delayed(const Duration(milliseconds: 800), () {
             if (mounted) {

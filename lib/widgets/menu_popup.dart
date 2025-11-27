@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pbl_jawara_test/utils/user_storage.dart';
 
-void showMenuPopUp(BuildContext context) {
+void showMenuPopUp(BuildContext context) async {
   showGeneralDialog(
     context: context,
     barrierDismissible: true,
@@ -29,10 +30,32 @@ void showMenuPopUp(BuildContext context) {
   );
 }
 
-class _MenuPopUpContent extends StatelessWidget {
+class _MenuPopUpContent extends StatefulWidget {
   final BuildContext parentContext;
 
   const _MenuPopUpContent({required this.parentContext});
+
+  @override
+  State<_MenuPopUpContent> createState() => _MenuPopUpContentState();
+}
+
+class _MenuPopUpContentState extends State<_MenuPopUpContent> {
+  String? _userRole;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserRole();
+  }
+
+  Future<void> _loadUserRole() async {
+    final userData = await UserStorage.getUserData();
+    if (mounted && userData != null) {
+      setState(() {
+        _userRole = userData['role']?.toString();
+      });
+    }
+  }
 
   void showFeatureNotReady(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -41,6 +64,12 @@ class _MenuPopUpContent extends StatelessWidget {
         duration: Duration(seconds: 2),
       ),
     );
+  }
+
+  bool _isAdminRole() {
+    return _userRole == 'adminSistem' || 
+           _userRole == 'ketuaRT' || 
+           _userRole == 'ketuaRW';
   }
 
   int _getCrossAxisCount(double width) {
@@ -156,6 +185,19 @@ class _MenuPopUpContent extends StatelessWidget {
         'action': () => context.push('/data-warga-rumah'),
       },
       {
+        'icon': Icons.person_add,
+        'title': 'Ajukan Data Warga',
+        'action': () => context.push('/warga-self-register'),
+        'color': Colors.amber,
+      },
+      {
+        'icon': Icons.verified_user,
+        'title': 'Verifikasi Data Warga',
+        'action': () => context.push('/verification-warga'),
+        'color': Colors.blue,
+        'adminOnly': true,
+      },
+      {
         'icon': Icons.message_rounded,
         'title': 'Pesan Warga',
         'action': () => showFeatureNotReady(context),
@@ -192,6 +234,14 @@ class _MenuPopUpContent extends StatelessWidget {
       },
     ];
 
+    // Filter menu items berdasarkan role
+    final filteredMenuItems = menuItems.where((item) {
+      if (item['adminOnly'] == true) {
+        return _isAdminRole();
+      }
+      return true;
+    }).toList();
+
     final crossAxisCount = _getCrossAxisCount(width);
     final childAspectRatio = _getChildAspectRatio(width);
     final iconSize = _getIconSize(width);
@@ -218,7 +268,7 @@ class _MenuPopUpContent extends StatelessWidget {
           padding: EdgeInsets.all(spacing),
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: menuItems.length,
+          itemCount: filteredMenuItems.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
             mainAxisSpacing: spacing,
@@ -226,7 +276,7 @@ class _MenuPopUpContent extends StatelessWidget {
             childAspectRatio: childAspectRatio,
           ),
           itemBuilder: (context, index) {
-            final item = menuItems[index];
+            final item = filteredMenuItems[index];
             return InkWell(
               onTap: () {
                 Navigator.pop(context);
@@ -243,11 +293,11 @@ class _MenuPopUpContent extends StatelessWidget {
                     width: containerSize,
                     height: containerSize,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00A89D),
+                      color: item['color'] ?? const Color(0xFF00A89D),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF00A89D).withOpacity(0.3),
+                          color: (item['color'] ?? const Color(0xFF00A89D)).withOpacity(0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),

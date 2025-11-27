@@ -1,8 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
+import 'package:pbl_jawara_test/utils/user_storage.dart';
 
-class DashboardHeader extends StatelessWidget {
+class DashboardHeader extends StatefulWidget {
   const DashboardHeader({super.key});
+
+  @override
+  State<DashboardHeader> createState() => _DashboardHeaderState();
+}
+
+class _DashboardHeaderState extends State<DashboardHeader> {
+  String _userName = 'User';
+  String _userInitial = 'U';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final name = await UserStorage.getUserName();
+    final initial = await UserStorage.getUserInitial();
+    
+    if (mounted) {
+      setState(() {
+        _userName = name;
+        _userInitial = initial;
+      });
+    }
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Apakah Anda yakin ingin keluar?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await UserStorage.clearUserData();
+              if (context.mounted) {
+                Navigator.pop(context); // Close dialog
+                context.go('/login');
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,10 +83,11 @@ class DashboardHeader extends StatelessWidget {
                 radius: 22,
                 backgroundColor: Colors.white,
                 child: Text(
-                  'P',
+                  _userInitial,
                   style: TextStyle(
                     color: colorScheme.primary,
                     fontWeight: FontWeight.bold,
+                    fontSize: 18,
                   ),
                 ),
               ),
@@ -36,9 +95,9 @@ class DashboardHeader extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Hai, Admin',
-                    style: TextStyle(
+                  Text(
+                    'Hai, $_userName',
+                    style: const TextStyle(
                       fontSize: 18,
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -59,6 +118,10 @@ class DashboardHeader extends StatelessWidget {
           IconButton(
             onPressed: () {},
             icon: FaIcon(FontAwesomeIcons.bell, color: Colors.white),
+          ),
+          IconButton(
+            onPressed: _showLogoutDialog,
+            icon: FaIcon(FontAwesomeIcons.rightFromBracket, color: Colors.white),
           ),
         ],
       ),
