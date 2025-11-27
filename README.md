@@ -1,6 +1,6 @@
 # pbl_jawara_test
 
-A new Flutter project.
+A New Flutter project.
 
 ## Getting Started
 
