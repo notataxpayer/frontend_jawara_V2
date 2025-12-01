@@ -11,7 +11,7 @@ class RumahAdminPage extends StatefulWidget {
 }
 
 class _RumahAdminPageState extends State<RumahAdminPage> {
-  late final RumahApiService _rumahService;
+  RumahApiService? _rumahService;
   List<Map<String, dynamic>> _rumahList = [];
   bool _isLoading = true;
   String? _token;
@@ -30,7 +30,7 @@ class _RumahAdminPageState extends State<RumahAdminPage> {
     _token = await UserStorage.getToken();
     if (_token != null) {
       _rumahService = RumahApiService(token: _token);
-      final result = await _rumahService.getAllRumah();
+      final result = await _rumahService!.getAllRumah();
 
       if (mounted) {
         setState(() {
@@ -80,7 +80,7 @@ class _RumahAdminPageState extends State<RumahAdminPage> {
     );
 
     if (confirm == true && _token != null) {
-      final result = await _rumahService.deleteRumah(id.toString());
+      final result = await _rumahService!.deleteRumah(id.toString());
 
       if (!mounted) return;
 

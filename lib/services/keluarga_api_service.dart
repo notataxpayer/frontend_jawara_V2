@@ -113,11 +113,16 @@ class KeluargaApiService {
   Future<Map<String, dynamic>> updateKeluarga(
       String id, Map<String, dynamic> keluargaData) async {
     try {
+      print('Updating keluarga ID: $id with data: $keluargaData');
+      
       final response = await http.put(
         Uri.parse('${ApiConfig.keluarga}/$id'),
         headers: _headers,
         body: jsonEncode(keluargaData),
       );
+
+      print('PUT Keluarga response status: ${response.statusCode}');
+      print('PUT Keluarga response body: ${response.body}');
 
       final data = jsonDecode(response.body);
 
@@ -125,6 +130,7 @@ class KeluargaApiService {
         return {
           'success': true,
           'data': data,
+          'message': data['message'] ?? 'Keluarga berhasil diupdate',
         };
       } else {
         return {
@@ -133,6 +139,7 @@ class KeluargaApiService {
         };
       }
     } catch (e) {
+      print('Error in updateKeluarga: $e');
       return {
         'success': false,
         'message': 'Terjadi kesalahan: $e',

@@ -48,9 +48,6 @@ class _KeluargaFormPageState extends State<KeluargaFormPage> {
     _wargaService = WargaService();
     _rumahService = RumahApiService(token: widget.token);
     _loadInitialData();
-    if (widget.isEdit && widget.keluargaData != null) {
-      _fillFormWithData();
-    }
   }
 
   Future<void> _loadInitialData() async {
@@ -84,6 +81,11 @@ class _KeluargaFormPageState extends State<KeluargaFormPage> {
       setState(() {
         _isLoadingData = false;
       });
+      
+      // Fill form AFTER data is loaded
+      if (widget.isEdit && widget.keluargaData != null) {
+        _fillFormWithData();
+      }
     }
   }
 
@@ -92,10 +94,24 @@ class _KeluargaFormPageState extends State<KeluargaFormPage> {
     _namaKeluargaController.text = data['namaKeluarga']?.toString() ?? '';
     // Backend uses 'jumlahanggota' (lowercase)
     _jumlahAnggotaController.text = (data['jumlahanggota'] ?? data['jumlahAnggota'])?.toString() ?? '';
-    _selectedKepalaKeluargaId = data['kepala_Keluarga_Id']?.toString();
-    _selectedRumahId = data['rumahId'] is int 
-        ? data['rumahId'] 
-        : int.tryParse(data['rumahId']?.toString() ?? '');
+    
+    // Get kepala keluarga NIK from object or old field
+    String? kepalaId;
+    if (data['kepala_keluarga'] != null && data['kepala_keluarga'] is Map) {
+      kepalaId = data['kepala_keluarga']['nik']?.toString();
+    } else {
+      kepalaId = (data['kepala_Keluarga_Id'] ?? data['kepala_keluarga_id'])?.toString();
+    }
+    
+    print('Loading kepala keluarga NIK: $kepalaId');
+    print('Available warga NIKs: ${_wargaList.map((w) => w['nik']).toList()}');
+    
+    setState(() {
+      _selectedKepalaKeluargaId = kepalaId;
+      _selectedRumahId = data['rumahId'] is int 
+          ? data['rumahId'] 
+          : int.tryParse(data['rumahId']?.toString() ?? '');
+    });
   }
 
   @override
@@ -124,9 +140,15 @@ class _KeluargaFormPageState extends State<KeluargaFormPage> {
       final keluargaData = {
         'namaKeluarga': _namaKeluargaController.text.trim(),
         'jumlahAnggota': int.parse(_jumlahAnggotaController.text.trim()),
-        if (_selectedRumahId != null) 'rumahId': _selectedRumahId!,
         'kepala_Keluarga_Id': _selectedKepalaKeluargaId!,
       };
+      
+      // Workaround: send rumahId with multiple field name variations
+      if (_selectedRumahId != null) {
+        keluargaData['rumahId'] = _selectedRumahId!;
+        keluargaData['rumahid'] = _selectedRumahId!; // Backend looking for this
+        keluargaData['rumah_id'] = _selectedRumahId!;
+      }
 
       print('Submitting keluarga data: $keluargaData');
 
@@ -279,11 +301,10 @@ class _KeluargaFormPageState extends State<KeluargaFormPage> {
                         final id = rumah['id'] is int 
                             ? rumah['id'] 
                             : int.tryParse(rumah['id']?.toString() ?? '');
-                        final blok = rumah['blok']?.toString() ?? 'N/A';
-                        final nomorRumah = rumah['nomorRumah']?.toString() ?? 'N/A';
+                        final alamat = rumah['alamat']?.toString() ?? 'N/A';
                         return DropdownMenuItem<int>(
                           value: id,
-                          child: Text('Blok $blok No. $nomorRumah'),
+                          child: Text(alamat),
                         );
                       }).toList(),
                       onChanged: (value) {
