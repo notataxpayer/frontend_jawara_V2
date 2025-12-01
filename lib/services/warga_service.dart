@@ -152,7 +152,7 @@ class WargaService {
             : int.tryParse(userData['id'].toString());
           print('Logged in userId from storage: $loggedInUserId');
         } catch (e) {
-          print('Error parsing user data: $e');
+          print('Kesalahan parsing data pengguna: $e');
         }
       }
 
@@ -189,7 +189,7 @@ class WargaService {
 
       // Jika tidak ada userId, return tidak ada profile
       if (loggedInUserId == null) {
-        print('ERROR: Cannot get logged in userId');
+        print('KESALAHAN: Tidak dapat mengambil userId yang login');
         return {
           'success': true,
           'hasProfile': false,

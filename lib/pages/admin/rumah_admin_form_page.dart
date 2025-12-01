@@ -178,7 +178,19 @@ class _RumahAdminFormPageState extends State<RumahAdminFormPage> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoadingData
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text(
+                    'Memuat data warga...',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
+              ),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Form(

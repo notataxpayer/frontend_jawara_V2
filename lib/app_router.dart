@@ -18,6 +18,9 @@ import 'package:pbl_jawara_test/pages/admin/keluarga_page.dart';
 import 'package:pbl_jawara_test/pages/admin/keluarga_form_page.dart';
 import 'package:pbl_jawara_test/pages/admin/rumah_admin_page.dart';
 import 'package:pbl_jawara_test/pages/admin/rumah_admin_form_page.dart';
+import 'package:pbl_jawara_test/pages/admin/marketplace_admin_page.dart';
+import 'package:pbl_jawara_test/pages/admin/marketplace_form_page.dart';
+import 'package:pbl_jawara_test/pages/warga/marketplace_warga_page.dart';
 import 'package:pbl_jawara_test/pages/warga/warga_self_register_page.dart';
 import 'package:pbl_jawara_test/pages/admin/verification_warga_page.dart';
 import 'package:pbl_jawara_test/utils/user_storage.dart';
@@ -254,6 +257,34 @@ final appRouter = GoRouter(
         );
       },
     ),
+    
+    // Marketplace routes
+    GoRoute(
+      path: '/marketplace',
+      name: 'marketplace',
+      builder: (context, state) => const _MarketplaceWargaPageWrapper(),
+    ),
+    GoRoute(
+      path: '/kelola-marketplace',
+      name: 'kelola-marketplace',
+      builder: (context, state) => const _MarketplaceAdminPageWrapper(),
+    ),
+    GoRoute(
+      path: '/kelola-marketplace/tambah',
+      name: 'kelola-marketplace-tambah',
+      builder: (context, state) => const _MarketplaceFormWrapper(),
+    ),
+    GoRoute(
+      path: '/kelola-marketplace/edit/:id',
+      name: 'kelola-marketplace-edit',
+      builder: (context, state) {
+        final itemData = state.extra as Map<String, dynamic>?;
+        return _MarketplaceFormWrapper(
+          itemData: itemData,
+          isEdit: true,
+        );
+      },
+    ),
   ],
 );
 
@@ -362,6 +393,60 @@ class _RumahAdminFormWrapper extends StatelessWidget {
         return RumahAdminFormPage(
           token: token,
           rumahData: rumahData,
+          isEdit: isEdit,
+        );
+      },
+    );
+  }
+}
+
+// Wrapper widget for MarketplaceWargaPage
+class _MarketplaceWargaPageWrapper extends StatelessWidget {
+  const _MarketplaceWargaPageWrapper();
+
+  @override
+  Widget build(BuildContext context) {
+    return const MarketplaceWargaPage();
+  }
+}
+
+// Wrapper widget for MarketplaceAdminPage
+class _MarketplaceAdminPageWrapper extends StatelessWidget {
+  const _MarketplaceAdminPageWrapper();
+
+  @override
+  Widget build(BuildContext context) {
+    return const MarketplaceAdminPage();
+  }
+}
+
+// Wrapper widget for MarketplaceFormPage
+class _MarketplaceFormWrapper extends StatelessWidget {
+  final Map<String, dynamic>? itemData;
+  final bool isEdit;
+
+  const _MarketplaceFormWrapper({
+    this.itemData,
+    this.isEdit = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: UserStorage.getToken(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        
+        final token = snapshot.data ?? '';
+        return MarketplaceFormPage(
+          token: token,
+          itemData: itemData,
           isEdit: isEdit,
         );
       },

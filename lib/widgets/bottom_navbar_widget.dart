@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pbl_jawara_test/utils/user_storage.dart';
 import 'package:pbl_jawara_test/widgets/menu_popup.dart';
 
 class BottomNavbarWidget extends StatefulWidget {
@@ -13,19 +14,28 @@ class _BottomNavbarWidgetState extends State<BottomNavbarWidget> {
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/home')) return 0;
-    if (location.startsWith('/marketplace')) return 1;
+    if (location.startsWith('/marketplace') || location.startsWith('/kelola-marketplace')) return 1;
     if (location.startsWith('/menu-popup')) return 2;
     if (location.startsWith('/user-management')) return 3;
     return 0;
   }
 
-  void _onItemTapped(int index) {
+  void _onItemTapped(int index) async {
     switch (index) {
       case 0:
         context.go('/home');
         break;
       case 1:
-        // laporan
+        // Navigate to marketplace - check user role
+        final userData = await UserStorage.getUserData();
+        final userRole = userData?['role']?.toString();
+        final isAdmin = userRole == 'adminSistem' || 
+                       userRole == 'ketuaRT' || 
+                       userRole == 'ketuaRW';
+        
+        if (context.mounted) {
+          context.go(isAdmin ? '/kelola-marketplace' : '/marketplace');
+        }
         break;
       case 2:
         showMenuPopUp(context); // ✅ ganti ini

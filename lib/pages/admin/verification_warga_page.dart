@@ -222,7 +222,19 @@ class _VerificationWargaPageState extends State<VerificationWargaPage> {
           // Content
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text(
+                          'Memuat data warga yang perlu diverifikasi...',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
                 : _filteredVerifications.isEmpty
                     ? Center(
                         child: Column(

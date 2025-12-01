@@ -35,7 +35,7 @@ class RumahApiService {
         };
       }
     } catch (e) {
-      print('Error in getAllRumah: $e');
+      print('Kesalahan saat mengambil semua rumah: $e');
       return {
         'success': false,
         'message': 'Terjadi kesalahan: $e',

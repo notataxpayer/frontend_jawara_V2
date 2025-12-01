@@ -35,7 +35,7 @@ class KeluargaApiService {
         };
       }
     } catch (e) {
-      print('Error in getAllKeluarga: $e');
+      print('Kesalahan saat mengambil semua keluarga: $e');
       return {
         'success': false,
         'message': 'Terjadi kesalahan: $e',
@@ -139,7 +139,7 @@ class KeluargaApiService {
         };
       }
     } catch (e) {
-      print('Error in updateKeluarga: $e');
+      print('Kesalahan saat mengupdate keluarga: $e');
       return {
         'success': false,
         'message': 'Terjadi kesalahan: $e',
