@@ -18,20 +18,24 @@ class RumahApiService {
         headers: _headers,
       );
 
-      final data = jsonDecode(response.body);
+      print('GET Rumah response status: ${response.statusCode}');
+      print('GET Rumah response body: ${response.body}');
 
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
         return {
           'success': true,
           'data': data,
         };
       } else {
+        final data = jsonDecode(response.body);
         return {
           'success': false,
           'message': data['message'] ?? 'Gagal mengambil data rumah',
         };
       }
     } catch (e) {
+      print('Error in getAllRumah: $e');
       return {
         'success': false,
         'message': 'Terjadi kesalahan: $e',
@@ -78,12 +82,16 @@ class RumahApiService {
         body: jsonEncode(rumahData),
       );
 
+      print('POST Rumah response status: ${response.statusCode}');
+      print('POST Rumah response body: ${response.body}');
+
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         return {
           'success': true,
           'data': data,
+          'message': data['message'] ?? 'Rumah berhasil dibuat',
         };
       } else {
         return {

@@ -18,20 +18,24 @@ class KeluargaApiService {
         headers: _headers,
       );
 
-      final data = jsonDecode(response.body);
+      print('GET Keluarga response status: ${response.statusCode}');
+      print('GET Keluarga response body: ${response.body}');
 
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
         return {
           'success': true,
           'data': data,
         };
       } else {
+        final data = jsonDecode(response.body);
         return {
           'success': false,
           'message': data['message'] ?? 'Gagal mengambil data keluarga',
         };
       }
     } catch (e) {
+      print('Error in getAllKeluarga: $e');
       return {
         'success': false,
         'message': 'Terjadi kesalahan: $e',
@@ -72,20 +76,26 @@ class KeluargaApiService {
   Future<Map<String, dynamic>> createKeluarga(
       Map<String, dynamic> keluargaData) async {
     try {
+      print('Creating keluarga with data: $keluargaData');
+      
       final response = await http.post(
         Uri.parse(ApiConfig.keluarga),
         headers: _headers,
         body: jsonEncode(keluargaData),
       );
 
-      final data = jsonDecode(response.body);
+      print('POST Keluarga response status: ${response.statusCode}');
+      print('POST Keluarga response body: ${response.body}');
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = jsonDecode(response.body);
         return {
           'success': true,
           'data': data,
+          'message': data['message'] ?? 'Keluarga berhasil dibuat',
         };
       } else {
+        final data = jsonDecode(response.body);
         return {
           'success': false,
           'message': data['message'] ?? 'Gagal membuat data keluarga',

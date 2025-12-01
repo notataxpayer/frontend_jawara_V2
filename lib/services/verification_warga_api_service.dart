@@ -49,14 +49,14 @@ class VerificationWargaApiService {
         headers: _headers,
       );
 
-      final data = jsonDecode(response.body);
-
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
         return {
           'success': true,
-          'data': data,
+          'data': data['data'] ?? data,
         };
       } else {
+        final data = jsonDecode(response.body);
         return {
           'success': false,
           'message': data['message'] ?? 'Gagal mengambil data request',
@@ -78,14 +78,19 @@ class VerificationWargaApiService {
         headers: _headers,
       );
 
-      final data = jsonDecode(response.body);
-
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
         return {
           'success': true,
-          'data': data,
+          'data': data['data'] ?? data,
+        };
+      } else if (response.statusCode == 403) {
+        return {
+          'success': false,
+          'message': 'Access denied',
         };
       } else {
+        final data = jsonDecode(response.body);
         return {
           'success': false,
           'message': data['message'] ?? 'Gagal mengambil data request',
@@ -107,14 +112,19 @@ class VerificationWargaApiService {
         headers: _headers,
       );
 
-      final data = jsonDecode(response.body);
-
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
         return {
           'success': true,
-          'data': data,
+          'data': data['data'] ?? data,
+        };
+      } else if (response.statusCode == 403) {
+        return {
+          'success': false,
+          'message': 'Access denied',
         };
       } else {
+        final data = jsonDecode(response.body);
         return {
           'success': false,
           'message': data['message'] ?? 'Gagal mengambil data request',

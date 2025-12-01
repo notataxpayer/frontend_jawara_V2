@@ -13,6 +13,7 @@ class VerificationService {
       );
 
       print('Get All Verifications Status: ${response.statusCode}');
+      print('Get All Verifications URL: ${ApiConfig.verificationAll}');
       print('Get All Verifications Body: ${response.body}');
 
       if (response.statusCode == 200) {

@@ -33,6 +33,18 @@ class _VerificationWargaPageState extends State<VerificationWargaPage> {
     if (_token != null) {
       final result = await _verificationService.getAllVerifications(_token!);
       
+      print('===== VERIFICATION DATA DEBUG =====');
+      print('Result success: ${result['success']}');
+      print('Result data type: ${result['data'].runtimeType}');
+      if (result['data'] is List) {
+        print('Data count: ${(result['data'] as List).length}');
+        if ((result['data'] as List).isNotEmpty) {
+          print('First item: ${(result['data'] as List).first}');
+          print('Status values: ${(result['data'] as List).map((e) => e['status']).toList()}');
+        }
+      }
+      print('====================================');
+      
       if (mounted) {
         setState(() {
           if (result['success'] == true && result['data'] != null) {
@@ -61,16 +73,26 @@ class _VerificationWargaPageState extends State<VerificationWargaPage> {
       if (_selectedFilter == 'all') {
         _filteredVerifications = _allVerifications;
       } else {
-        // Map filter value to actual API status
-        String statusToFilter = _selectedFilter;
-        if (_selectedFilter == 'approved') {
-          statusToFilter = 'accepted'; // API uses 'accepted' not 'approved'
-        }
-        
-        _filteredVerifications = _allVerifications
-            .where((item) => item['status']?.toString().toLowerCase() == statusToFilter)
-            .toList();
+        _filteredVerifications = _allVerifications.where((item) {
+          final status = item['status']?.toString().toLowerCase() ?? '';
+          
+          switch (_selectedFilter) {
+            case 'pending':
+              return status == 'pending';
+            case 'approved':
+              // Handle both 'approved' and 'accepted' dari backend
+              return status == 'approved' || status == 'accepted';
+            case 'rejected':
+              return status == 'rejected';
+            default:
+              return true;
+          }
+        }).toList();
       }
+      
+      print('Filter applied: $_selectedFilter');
+      print('Total all: ${_allVerifications.length}');
+      print('Filtered: ${_filteredVerifications.length}');
     });
   }
 
@@ -276,11 +298,26 @@ class _VerificationWargaPageState extends State<VerificationWargaPage> {
     }
     
     final status = data['status']?.toString() ?? 'pending';
-    final statusColor = status == 'pending' 
-        ? Colors.orange 
-        : status == 'approved' 
-            ? Colors.green 
-            : Colors.red;
+    
+    // Warna berdasarkan status
+    Color statusColor;
+    Color cardBorderColor;
+    Color cardBackgroundColor;
+    
+    if (status == 'approved' || status == 'accepted') {
+      statusColor = Colors.green;
+      cardBorderColor = Colors.green;
+      cardBackgroundColor = Colors.green.shade50;
+    } else if (status == 'rejected') {
+      statusColor = Colors.red;
+      cardBorderColor = Colors.red;
+      cardBackgroundColor = Colors.red.shade50;
+    } else {
+      // pending
+      statusColor = Colors.orange;
+      cardBorderColor = Colors.orange;
+      cardBackgroundColor = Colors.white;
+    }
 
     // Get data from extra_data or fallback to main data
     final nik = data['nik_baru']?.toString() ?? data['nik']?.toString() ?? 'N/A';
@@ -294,131 +331,147 @@ class _VerificationWargaPageState extends State<VerificationWargaPage> {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
+      color: cardBackgroundColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: cardBorderColor,
+          width: 2,
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header dengan status
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    namaWarga,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: statusColor),
-                  ),
-                  child: Text(
-                    status.toUpperCase(),
-                    style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border(
+            left: BorderSide(
+              color: cardBorderColor,
+              width: 6,
             ),
-            const Divider(height: 24),
-            
-            // Data warga
-            _buildInfoRow('Nama Warga', namaWarga),
-            const SizedBox(height: 8),
-            _buildInfoRow('NIK', nik),
-            const SizedBox(height: 8),
-            _buildInfoRow('Jenis Kelamin', jenisKelamin),
-            const SizedBox(height: 8),
-            _buildInfoRow('Status Domisili', statusDomisili),
-            const SizedBox(height: 8),
-            _buildInfoRow('Status Hidup', statusHidup),
-            const SizedBox(height: 8),
-            _buildInfoRow('User ID', userId),
-            
-            // Foto KTP
-            if (fotoKtp != null) ...[
-              const SizedBox(height: 16),
-              const Text(
-                'Foto KTP:',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  fotoKtp,
-                  height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 200,
-                      color: Colors.grey[200],
-                      child: const Center(
-                        child: Icon(Icons.error_outline, size: 48),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-            
-            // Action buttons (hanya tampil jika status pending)
-            if (status == 'pending') ...[
-              const SizedBox(height: 16),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header dengan status
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _handleReject(data['id']),
-                      icon: const Icon(Icons.close),
-                      label: const Text('Tolak'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                    child: Text(
+                      namaWarga,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _handleApprove(data['id']),
-                      icon: const Icon(Icons.check),
-                      label: const Text('Setujui'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: statusColor),
+                    ),
+                    child: Text(
+                      status.toUpperCase(),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
                       ),
                     ),
                   ),
                 ],
               ),
+                const Divider(height: 24),
+              
+              // Data warga
+              _buildInfoRow('Nama Warga', namaWarga),
+              const SizedBox(height: 8),
+              _buildInfoRow('NIK', nik),
+              const SizedBox(height: 8),
+              _buildInfoRow('Jenis Kelamin', jenisKelamin),
+              const SizedBox(height: 8),
+              _buildInfoRow('Status Domisili', statusDomisili),
+              const SizedBox(height: 8),
+              _buildInfoRow('Status Hidup', statusHidup),
+              const SizedBox(height: 8),
+                _buildInfoRow('User ID', userId),
+              
+              // Foto KTP
+              if (fotoKtp != null) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  'Foto KTP:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    fotoKtp,
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 200,
+                        color: Colors.grey[200],
+                        child: const Center(
+                          child: Icon(Icons.error_outline, size: 48),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+              
+              // Action buttons (hanya tampil jika status pending)
+              if (status == 'pending') ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _handleReject(data['id']),
+                        icon: const Icon(Icons.close),
+                        label: const Text('Tolak'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _handleApprove(data['id']),
+                        icon: const Icon(Icons.check),
+                        label: const Text('Setujui'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

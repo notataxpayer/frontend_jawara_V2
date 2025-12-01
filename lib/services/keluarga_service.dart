@@ -1,4 +1,5 @@
 import 'package:pbl_jawara_test/models/keluarga.dart';
+import 'package:pbl_jawara_test/services/keluarga_api_service.dart';
 
 class KeluargaService {
   static final List<Keluarga> _keluargaList = [
@@ -25,7 +26,36 @@ class KeluargaService {
     ),
   ];
 
-  Future<List<Keluarga>> getAllKeluarga() async {
+  // Use API service for actual API calls
+  Future<Map<String, dynamic>> getAllKeluarga(String token) async {
+    final apiService = KeluargaApiService(token: token);
+    return await apiService.getAllKeluarga();
+  }
+
+  Future<Map<String, dynamic>> getKeluargaById(String token, int id) async {
+    final apiService = KeluargaApiService(token: token);
+    return await apiService.getKeluargaById(id.toString());
+  }
+
+  Future<Map<String, dynamic>> createKeluarga(
+      String token, Map<String, dynamic> keluargaData) async {
+    final apiService = KeluargaApiService(token: token);
+    return await apiService.createKeluarga(keluargaData);
+  }
+
+  Future<Map<String, dynamic>> updateKeluarga(
+      String token, int id, Map<String, dynamic> keluargaData) async {
+    final apiService = KeluargaApiService(token: token);
+    return await apiService.updateKeluarga(id.toString(), keluargaData);
+  }
+
+  Future<Map<String, dynamic>> deleteKeluarga(String token, int id) async {
+    final apiService = KeluargaApiService(token: token);
+    return await apiService.deleteKeluarga(id.toString());
+  }
+
+  // Legacy methods for local data (kept for backward compatibility)
+  Future<List<Keluarga>> getAllKeluargaLocal() async {
     await Future.delayed(const Duration(milliseconds: 500));
     return _keluargaList;
   }
@@ -39,7 +69,7 @@ class KeluargaService {
         .toList();
   }
 
-  Future<Keluarga?> getKeluargaById(String id) async {
+  Future<Keluarga?> getKeluargaByIdLocal(String id) async {
     await Future.delayed(const Duration(milliseconds: 300));
     try {
       return _keluargaList.firstWhere((keluarga) => keluarga.id == id);
@@ -76,7 +106,7 @@ class KeluargaService {
     }
   }
 
-  Future<Map<String, dynamic>> updateKeluarga(
+  Future<Map<String, dynamic>> updateKeluargaLocal(
       String id, Keluarga keluarga) async {
     await Future.delayed(const Duration(milliseconds: 500));
     try {
@@ -104,7 +134,7 @@ class KeluargaService {
     }
   }
 
-  Future<Map<String, dynamic>> deleteKeluarga(String id) async {
+  Future<Map<String, dynamic>> deleteKeluargaLocal(String id) async {
     await Future.delayed(const Duration(milliseconds: 500));
     try {
       final index = _keluargaList.indexWhere((k) => k.id == id);

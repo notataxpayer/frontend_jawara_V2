@@ -198,6 +198,20 @@ class _MenuPopUpContentState extends State<_MenuPopUpContent> {
         'adminOnly': true,
       },
       {
+        'icon': Icons.family_restroom,
+        'title': 'Kelola Keluarga',
+        'action': () => context.push('/kelola-keluarga'),
+        'color': Colors.teal,
+        'adminOnly': true,
+      },
+      {
+        'icon': Icons.home_work,
+        'title': 'Kelola Rumah',
+        'action': () => context.push('/kelola-rumah'),
+        'color': Colors.brown,
+        'adminOnly': true,
+      },
+      {
         'icon': Icons.message_rounded,
         'title': 'Pesan Warga',
         'action': () => showFeatureNotReady(context),
