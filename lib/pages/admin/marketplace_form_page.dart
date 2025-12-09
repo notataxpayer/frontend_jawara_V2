@@ -31,6 +31,7 @@ class _MarketplaceFormPageState extends State<MarketplaceFormPage> {
   final _namaProdukController = TextEditingController();
   final _hargaController = TextEditingController();
   final _deskripsiController = TextEditingController();
+  final _stokController = TextEditingController();
 
   // Image
   File? _selectedImage;
@@ -54,6 +55,7 @@ class _MarketplaceFormPageState extends State<MarketplaceFormPage> {
     _namaProdukController.text = data['namaProduk']?.toString() ?? '';
     _hargaController.text = data['harga']?.toString() ?? '';
     _deskripsiController.text = data['deskripsi']?.toString() ?? '';
+    _stokController.text = data['stok']?.toString() ?? '0';
     _existingImageUrl = data['gambar']?.toString();
   }
 
@@ -62,6 +64,7 @@ class _MarketplaceFormPageState extends State<MarketplaceFormPage> {
     _namaProdukController.dispose();
     _hargaController.dispose();
     _deskripsiController.dispose();
+    _stokController.dispose();
     super.dispose();
   }
 
@@ -77,42 +80,166 @@ class _MarketplaceFormPageState extends State<MarketplaceFormPage> {
     return value.replaceAll('.', '');
   }
 
-  Future<void> _pickImage() async {
-    try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
+  Future<void> _showImageSourceDialog() async {
+    if (kIsWeb) {
+      // Di web, langsung buka galeri karena kamera tidak didukung
+      _pickImage(ImageSource.gallery);
+      return;
+    }
+    
+    // Di mobile, tampilkan pilihan
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'Pilih Sumber Gambar',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library, color: Color(0xFF6A1B9A)),
+                  title: const Text('Galeri'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt, color: Color(0xFF6A1B9A)),
+                  title: const Text('Kamera'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
-      if (image != null) {
-        final bytes = await image.readAsBytes();
-        // Get original filename or create one with proper extension
-        String filename = image.name;
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      XFile? image;
+      
+      if (kIsWeb) {
+        // Untuk web, gunakan image picker dengan parameter yang sesuai
+        image = await _picker.pickImage(
+          source: source,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 85,
+        );
+      } else {
+        // Untuk mobile, tambahkan preferensi kamera belakang
+        image = await _picker.pickImage(
+          source: source,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 85,
+          preferredCameraDevice: CameraDevice.rear,
+        );
+      }
+
+      if (image == null) {
+        // User membatalkan atau kamera gagal
+        if (mounted && source == ImageSource.camera) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pengambilan foto dibatalkan atau kamera tidak tersedia'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      final bytes = await image.readAsBytes();
+      
+      // Determine filename with proper extension
+      String filename;
+      if (source == ImageSource.camera) {
+        // Foto dari kamera selalu gunakan .jpg
+        filename = 'camera_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      } else {
+        // Foto dari galeri, coba ambil dari nama asli
+        filename = image.name;
+        // Validasi extension
         if (!filename.toLowerCase().endsWith('.jpg') && 
             !filename.toLowerCase().endsWith('.jpeg') && 
             !filename.toLowerCase().endsWith('.png') && 
             !filename.toLowerCase().endsWith('.webp')) {
-          // Default to .jpg if extension not recognized
-          filename = 'image_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        }
-        
-        setState(() {
-          _imageFileName = filename;
-          if (kIsWeb) {
-            _imageBytes = bytes;
+          // Detect dari magic bytes (file signature)
+          if (bytes.length >= 4) {
+            // PNG signature: 89 50 4E 47
+            if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) {
+              filename = 'image_${DateTime.now().millisecondsSinceEpoch}.png';
+            }
+            // JPEG signature: FF D8 FF
+            else if (bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) {
+              filename = 'image_${DateTime.now().millisecondsSinceEpoch}.jpg';
+            }
+            // WebP signature: RIFF ... WEBP
+            else if (bytes.length >= 12 && 
+                     bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46 &&
+                     bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42 && bytes[11] == 0x50) {
+              filename = 'image_${DateTime.now().millisecondsSinceEpoch}.webp';
+            }
+            else {
+              // Default ke jpg jika tidak terdeteksi
+              filename = 'image_${DateTime.now().millisecondsSinceEpoch}.jpg';
+            }
           } else {
-            _selectedImage = File(image.path);
+            filename = 'image_${DateTime.now().millisecondsSinceEpoch}.jpg';
           }
-        });
+        }
       }
+      
+      setState(() {
+        _imageFileName = filename;
+        if (kIsWeb) {
+          _imageBytes = bytes;
+          _selectedImage = null;
+        } else {
+          _selectedImage = File(image!.path);
+          _imageBytes = null;
+        }
+      });
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Gagal memilih gambar: $e';
+        
+        // Error handling khusus untuk kamera
+        if (source == ImageSource.camera) {
+          errorMessage = 'Kamera tidak dapat diakses.\n'
+              'Pastikan:\n'
+              '- Browser mendukung kamera (Chrome/Edge)\n'
+              '- Izin kamera sudah diberikan\n'
+              '- Aplikasi dijalankan di HTTPS atau localhost\n\n'
+              'Error: $e';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal memilih gambar: $e'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -138,6 +265,7 @@ class _MarketplaceFormPageState extends State<MarketplaceFormPage> {
 
       final cleanHarga = _cleanNumber(_hargaController.text.trim());
       final harga = int.parse(cleanHarga);
+      final stok = int.parse(_stokController.text.trim());
 
       final result = widget.isEdit
           ? await _marketplaceService.updateItem(
@@ -148,6 +276,7 @@ class _MarketplaceFormPageState extends State<MarketplaceFormPage> {
               namaProduk: _namaProdukController.text.trim(),
               harga: harga,
               deskripsi: _deskripsiController.text.trim(),
+              stok: stok, // Sekarang bisa kirim stok via JSON
             )
           : await _marketplaceService.createItem(
               gambar: _selectedImage,
@@ -156,6 +285,7 @@ class _MarketplaceFormPageState extends State<MarketplaceFormPage> {
               namaProduk: _namaProdukController.text.trim(),
               harga: harga,
               deskripsi: _deskripsiController.text.trim(),
+              stok: stok,
             );
 
       if (!mounted) return;
@@ -194,7 +324,7 @@ class _MarketplaceFormPageState extends State<MarketplaceFormPage> {
           widget.isEdit ? 'Edit Item Marketplace' : 'Tambah Item Marketplace',
           style: const TextStyle(color: Colors.white),
         ),
-        backgroundColor: const Color(0xFF6A1B9A),
+        backgroundColor: const Color(0xFF00B894),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Stack(
@@ -206,7 +336,7 @@ class _MarketplaceFormPageState extends State<MarketplaceFormPage> {
           children: [
             // Image Picker
             GestureDetector(
-              onTap: _pickImage,
+              onTap: _showImageSourceDialog,
               child: Container(
                 height: 200,
                 decoration: BoxDecoration(
@@ -320,6 +450,35 @@ class _MarketplaceFormPageState extends State<MarketplaceFormPage> {
             ),
             const SizedBox(height: 16),
 
+            // Stok
+            TextFormField(
+              controller: _stokController,
+              decoration: const InputDecoration(
+                labelText: 'Stok',
+                hintText: 'Jumlah stok barang',
+                prefixIcon: Icon(Icons.inventory_2),
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+              ],
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Stok tidak boleh kosong';
+                }
+                final stok = int.tryParse(value);
+                if (stok == null) {
+                  return 'Harus berupa angka';
+                }
+                if (stok < 0) {
+                  return 'Stok tidak boleh negatif';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
             // Deskripsi
             TextFormField(
               controller: _deskripsiController,
@@ -344,7 +503,7 @@ class _MarketplaceFormPageState extends State<MarketplaceFormPage> {
             ElevatedButton(
               onPressed: _isLoading ? null : _handleSubmit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6A1B9A),
+                backgroundColor: const Color(0xFF00B894),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(

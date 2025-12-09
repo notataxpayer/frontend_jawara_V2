@@ -83,6 +83,7 @@ class MarketplaceService {
     required String namaProduk,
     required int harga,
     required String deskripsi,
+    int? stok,
   }) async {
     try {
       print('Creating marketplace item: $namaProduk, $harga, $deskripsi');
@@ -99,8 +100,23 @@ class MarketplaceService {
 
       // Add image file
       if (gambar != null) {
+        // Determine MIME type from filename
+        String contentType = 'image/jpeg'; // default
+        final filename = gambar.path.toLowerCase();
+        if (filename.endsWith('.png')) {
+          contentType = 'image/png';
+        } else if (filename.endsWith('.webp')) {
+          contentType = 'image/webp';
+        } else if (filename.endsWith('.jpg') || filename.endsWith('.jpeg')) {
+          contentType = 'image/jpeg';
+        }
+        
         request.files.add(
-          await http.MultipartFile.fromPath('gambar', gambar.path),
+          await http.MultipartFile.fromPath(
+            'gambar',
+            gambar.path,
+            contentType: MediaType.parse(contentType),
+          ),
         );
       } else if (gambarBytes != null) {
         // Determine MIME type from filename
@@ -130,6 +146,9 @@ class MarketplaceService {
       request.fields['namaProduk'] = namaProduk;
       request.fields['harga'] = harga.toString();
       request.fields['deskripsi'] = deskripsi;
+      if (stok != null) {
+        request.fields['stok'] = stok.toString();
+      }
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -160,7 +179,7 @@ class MarketplaceService {
     }
   }
 
-  // Update marketplace item (admin only)
+  // Update marketplace item (admin only) - JSON only, no image update
   Future<Map<String, dynamic>> updateItem({
     required String id,
     File? gambar,
@@ -169,73 +188,61 @@ class MarketplaceService {
     required String namaProduk,
     required int harga,
     required String deskripsi,
+    int? stok,
   }) async {
     try {
       print('Updating marketplace item ID: $id');
 
-      var request = http.MultipartRequest(
-        'PUT',
+      // Backend expects JSON, not multipart for update
+      final body = {
+        'namaProduk': namaProduk,
+        'harga': harga,
+        'deskripsi': deskripsi,
+        if (stok != null) 'stok': stok,
+      };
+
+      print('PUT Request body: ${jsonEncode(body)}');
+
+      final response = await http.put(
         Uri.parse('${ApiConfig.marketplace}/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
       );
-
-      // Add headers
-      if (token != null) {
-        request.headers['Authorization'] = 'Bearer $token';
-      }
-
-      // Add image file if provided
-      if (gambar != null) {
-        request.files.add(
-          await http.MultipartFile.fromPath('gambar', gambar.path),
-        );
-      } else if (gambarBytes != null) {
-        // Determine MIME type from filename
-        String contentType = 'image/jpeg'; // default
-        if (gambarFilename != null) {
-          if (gambarFilename.toLowerCase().endsWith('.png')) {
-            contentType = 'image/png';
-          } else if (gambarFilename.toLowerCase().endsWith('.webp')) {
-            contentType = 'image/webp';
-          } else if (gambarFilename.toLowerCase().endsWith('.jpg') || 
-                     gambarFilename.toLowerCase().endsWith('.jpeg')) {
-            contentType = 'image/jpeg';
-          }
-        }
-        
-        request.files.add(
-          http.MultipartFile.fromBytes(
-            'gambar',
-            gambarBytes,
-            filename: gambarFilename ?? 'image.jpg',
-            contentType: MediaType.parse(contentType),
-          ),
-        );
-      }
-
-      // Add other fields
-      request.fields['namaProduk'] = namaProduk;
-      request.fields['harga'] = harga.toString();
-      request.fields['deskripsi'] = deskripsi;
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
 
       print('PUT Marketplace response status: ${response.statusCode}');
       print('PUT Marketplace response body: ${response.body}');
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return {
-          'success': true,
-          'data': data,
-          'message': data['message'] ?? 'Item berhasil diupdate',
-        };
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        try {
+          final data = jsonDecode(response.body);
+          return {
+            'success': true,
+            'data': data,
+            'message': data['message'] ?? 'Item berhasil diupdate',
+          };
+        } catch (e) {
+          // If response is not JSON, consider it success if status is 200
+          return {
+            'success': true,
+            'message': 'Item berhasil diupdate',
+          };
+        }
       } else {
-        final data = jsonDecode(response.body);
-        return {
-          'success': false,
-          'message': data['message'] ?? 'Gagal mengupdate item',
-        };
+        try {
+          final data = jsonDecode(response.body);
+          return {
+            'success': false,
+            'message': data['message'] ?? 'Gagal mengupdate item',
+          };
+        } catch (e) {
+          return {
+            'success': false,
+            'message': 'Gagal mengupdate item: ${response.body}',
+          };
+        }
       }
     } catch (e) {
       print('Kesalahan saat mengupdate item: $e');

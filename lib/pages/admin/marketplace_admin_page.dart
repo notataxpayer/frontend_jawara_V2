@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pbl_jawara_test/config/api_config.dart';
 import 'package:pbl_jawara_test/services/marketplace_service.dart';
 import 'package:pbl_jawara_test/utils/user_storage.dart';
 
@@ -104,11 +105,15 @@ class _MarketplaceAdminPageState extends State<MarketplaceAdminPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/home'),
+        ),
         title: const Text(
           'Kelola Marketplace',
           style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: const Color(0xFF6A1B9A),
+        backgroundColor: const Color(0xFF00B894),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoading
@@ -163,7 +168,7 @@ class _MarketplaceAdminPageState extends State<MarketplaceAdminPage> {
             _loadData();
           }
         },
-        backgroundColor: const Color(0xFF6A1B9A),
+        backgroundColor: const Color(0xFF00B894),
         // icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('+', style: TextStyle(color: Colors.white),),
       ),
@@ -176,6 +181,11 @@ class _MarketplaceAdminPageState extends State<MarketplaceAdminPage> {
     final harga = data['harga']?.toString() ?? '0';
     final deskripsi = data['deskripsi']?.toString() ?? '';
     final gambar = data['gambar']?.toString();
+    final stok = data['stok'];
+    final stokInt = stok is int ? stok : (int.tryParse(stok?.toString() ?? '0') ?? 0);
+    
+    // Get full image URL
+    final imageUrl = ApiConfig.getImageUrl(gambar);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -186,11 +196,11 @@ class _MarketplaceAdminPageState extends State<MarketplaceAdminPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (gambar != null && gambar.isNotEmpty)
+          if (imageUrl.isNotEmpty)
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
               child: Image.network(
-                gambar,
+                imageUrl,
                 width: double.infinity,
                 height: 200,
                 fit: BoxFit.cover,
@@ -270,6 +280,25 @@ class _MarketplaceAdminPageState extends State<MarketplaceAdminPage> {
                     fontWeight: FontWeight.bold,
                     color: Colors.green[700],
                   ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.inventory_2,
+                      size: 16,
+                      color: stokInt > 0 ? Colors.green : Colors.red,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Stok: $stokInt',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: stokInt > 0 ? Colors.green[700] : Colors.red,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(

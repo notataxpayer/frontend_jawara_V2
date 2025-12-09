@@ -23,6 +23,9 @@ class ApiConfig {
   // MarketPlace endpoints
   static const String marketplace = '$apiUrl/marketplace';
   
+  // Upload/Image base URL
+  static const String imageBaseUrl = '$baseUrl/uploads';
+  
   // Verification Warga endpoints
   static const String verificationWarga = '$apiUrl/verification-warga';
   static const String verificationSubmit = '$apiUrl/verification-warga/submit';
@@ -41,4 +44,17 @@ class ApiConfig {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       };
+  
+  // Helper method to get full image URL
+  static String getImageUrl(String? imagePath) {
+    if (imagePath == null || imagePath.isEmpty) return '';
+    
+    // If already a full URL, return as is
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    
+    // Otherwise, prepend base URL
+    return '$imageBaseUrl/$imagePath';
+  }
 }

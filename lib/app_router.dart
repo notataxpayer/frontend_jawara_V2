@@ -21,6 +21,7 @@ import 'package:pbl_jawara_test/pages/admin/rumah_admin_form_page.dart';
 import 'package:pbl_jawara_test/pages/admin/marketplace_admin_page.dart';
 import 'package:pbl_jawara_test/pages/admin/marketplace_form_page.dart';
 import 'package:pbl_jawara_test/pages/warga/marketplace_warga_page.dart';
+import 'package:pbl_jawara_test/pages/transaksi/histori_transaksi_page.dart';
 import 'package:pbl_jawara_test/pages/warga/warga_self_register_page.dart';
 import 'package:pbl_jawara_test/pages/admin/verification_warga_page.dart';
 import 'package:pbl_jawara_test/utils/user_storage.dart';
@@ -284,6 +285,13 @@ final appRouter = GoRouter(
           isEdit: true,
         );
       },
+    ),
+    
+    // Transaksi routes
+    GoRoute(
+      path: '/histori-transaksi',
+      name: 'histori-transaksi',
+      builder: (context, state) => const HistoriTransaksiPage(),
     ),
   ],
 );

@@ -132,14 +132,14 @@ class _VerificationWargaPageState extends State<VerificationWargaPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message'] ?? 'Verifikasi disetujui'),
-            backgroundColor: result['success'] == true ? Colors.green : Colors.red,
+            content: Text(result['message'] ?? 'Data warga berhasil disetujui'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
           ),
         );
 
-        if (result['success'] == true) {
-          _loadData(); // Reload data
-        }
+        // Always reload data after action
+        await _loadData();
       }
     }
   }
@@ -173,14 +173,14 @@ class _VerificationWargaPageState extends State<VerificationWargaPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message'] ?? 'Verifikasi ditolak'),
+            content: Text(result['message'] ?? 'Data warga berhasil ditolak'),
             backgroundColor: result['success'] == true ? Colors.orange : Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
 
-        if (result['success'] == true) {
-          _loadData(); // Reload data
-        }
+        // Always reload data after action
+        await _loadData();
       }
     }
   }
