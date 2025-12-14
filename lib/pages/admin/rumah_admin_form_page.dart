@@ -50,9 +50,6 @@ class _RumahAdminFormPageState extends State<RumahAdminFormPage> {
     _rumahService = RumahApiService(token: widget.token);
     _keluargaService = KeluargaApiService(token: widget.token);
     _loadInitialData();
-    if (widget.isEdit && widget.rumahData != null) {
-      _fillFormWithData();
-    }
   }
 
   Future<void> _loadInitialData() async {
@@ -71,6 +68,11 @@ class _RumahAdminFormPageState extends State<RumahAdminFormPage> {
       }
     }
 
+    // Fill form with data AFTER loading keluarga list
+    if (widget.isEdit && widget.rumahData != null) {
+      _fillFormWithData();
+    }
+
     if (mounted) {
       setState(() {
         _isLoadingData = false;
@@ -83,10 +85,23 @@ class _RumahAdminFormPageState extends State<RumahAdminFormPage> {
     _alamatController.text = data['alamat']?.toString() ?? '';
     // Backend uses 'jumlahpenghuni' (lowercase)
     _jumlahPenghuniController.text = (data['jumlahpenghuni'] ?? data['jumlahPenghuni'])?.toString() ?? '0';
-    _selectedStatusKepemilikan = data['statusKepemilikan']?.toString();
-    _selectedKeluargaId = data['keluargaId'] is int
-        ? data['keluargaId']
-        : int.tryParse(data['keluargaId']?.toString() ?? '');
+    
+    // Parse status kepemilikan
+    final status = data['statusKepemilikan']?.toString();
+    print('Filling form - statusKepemilikan from data: $status');
+    if (status != null && (status == 'milik_sendiri' || status == 'kontrak')) {
+      _selectedStatusKepemilikan = status;
+    }
+    
+    // Parse keluarga ID
+    final keluargaIdRaw = data['keluargaId'];
+    print('Filling form - keluargaId from data: $keluargaIdRaw (${keluargaIdRaw.runtimeType})');
+    if (keluargaIdRaw != null) {
+      _selectedKeluargaId = keluargaIdRaw is int
+          ? keluargaIdRaw
+          : int.tryParse(keluargaIdRaw.toString());
+      print('Filling form - parsed keluargaId: $_selectedKeluargaId');
+    }
   }
 
   @override
@@ -122,7 +137,15 @@ class _RumahAdminFormPageState extends State<RumahAdminFormPage> {
         if (_selectedKeluargaId != null) 'keluargaId': _selectedKeluargaId!,
       };
 
-      print('Submitting rumah data: $rumahData');
+      print('=== SUBMIT RUMAH DATA ===');
+      print('Status Kepemilikan: $_selectedStatusKepemilikan');
+      print('Keluarga ID: $_selectedKeluargaId');
+      print('Full rumahData: $rumahData');
+      print('Is Edit: ${widget.isEdit}');
+      if (widget.isEdit) {
+        print('Rumah ID: ${widget.rumahData!['id']}');
+      }
+      print('========================');
 
       final result = widget.isEdit
           ? await _rumahService.updateRumah(
@@ -221,12 +244,13 @@ class _RumahAdminFormPageState extends State<RumahAdminFormPage> {
                     // Status Kepemilikan Dropdown
                     DropdownButtonFormField<String>(
                       value: _selectedStatusKepemilikan,
+                      isExpanded: true,
                       decoration: const InputDecoration(
-                        labelText: 'Status Kepemilikan',
+                        labelText: 'Status Kepemilikan *',
                         prefixIcon: Icon(Icons.assignment),
                         border: OutlineInputBorder(),
                       ),
-                      hint: const Text('Pilih Status Kepemilikan'),
+                      hint: const Text('-- Pilih Status Kepemilikan --'),
                       items: _statusOptions.map((status) {
                         return DropdownMenuItem<String>(
                           value: status['value'],
@@ -237,6 +261,7 @@ class _RumahAdminFormPageState extends State<RumahAdminFormPage> {
                         setState(() {
                           _selectedStatusKepemilikan = value;
                         });
+                        print('Status kepemilikan changed to: $value');
                       },
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -276,29 +301,47 @@ class _RumahAdminFormPageState extends State<RumahAdminFormPage> {
                     const SizedBox(height: 16),
 
                     // Keluarga Dropdown (Optional)
-                    DropdownButtonFormField<int>(
+                    DropdownButtonFormField<int?>(
                       value: _selectedKeluargaId,
-                      decoration: const InputDecoration(
+                      isExpanded: true,
+                      decoration: InputDecoration(
                         labelText: 'Keluarga (Opsional)',
-                        prefixIcon: Icon(Icons.family_restroom),
-                        border: OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.family_restroom),
+                        border: const OutlineInputBorder(),
                         helperText: 'Kosongkan jika belum ada keluarga',
+                        suffixIcon: _selectedKeluargaId != null
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 20),
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedKeluargaId = null;
+                                  });
+                                },
+                              )
+                            : null,
                       ),
-                      hint: const Text('Pilih Keluarga'),
-                      items: _keluargaList.map((keluarga) {
-                        final id = keluarga['id'] is int
-                            ? keluarga['id']
-                            : int.tryParse(keluarga['id']?.toString() ?? '');
-                        final nama = keluarga['namaKeluarga']?.toString() ?? 'N/A';
-                        return DropdownMenuItem<int>(
-                          value: id,
-                          child: Text(nama),
-                        );
-                      }).toList(),
+                      hint: const Text('-- Pilih Keluarga --'),
+                      items: [
+                        // Null option
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('-- Tidak ada keluarga --'),
+                        ),
+                        ..._keluargaList.map((keluarga) {
+                          final id = keluarga['id'];
+                          final idInt = id is int ? id : int.tryParse(id?.toString() ?? '');
+                          final nama = keluarga['namaKeluarga']?.toString() ?? 'N/A';
+                          return DropdownMenuItem<int?>(
+                            value: idInt,
+                            child: Text(nama),
+                          );
+                        }).toList(),
+                      ],
                       onChanged: (value) {
                         setState(() {
                           _selectedKeluargaId = value;
                         });
+                        print('Keluarga ID changed to: $value');
                       },
                     ),
                     const SizedBox(height: 32),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pbl_jawara_test/services/rumah_api_service.dart';
+import 'package:pbl_jawara_test/services/keluarga_api_service.dart';
 import 'package:pbl_jawara_test/utils/user_storage.dart';
 
 class RumahAdminPage extends StatefulWidget {
@@ -12,7 +13,9 @@ class RumahAdminPage extends StatefulWidget {
 
 class _RumahAdminPageState extends State<RumahAdminPage> {
   RumahApiService? _rumahService;
+  KeluargaApiService? _keluargaService;
   List<Map<String, dynamic>> _rumahList = [];
+  List<Map<String, dynamic>> _keluargaList = [];
   bool _isLoading = true;
   String? _token;
 
@@ -30,10 +33,17 @@ class _RumahAdminPageState extends State<RumahAdminPage> {
     _token = await UserStorage.getToken();
     if (_token != null) {
       _rumahService = RumahApiService(token: _token);
+      _keluargaService = KeluargaApiService(token: _token);
+      
+      // Load rumah
       final result = await _rumahService!.getAllRumah();
+      
+      // Load keluarga
+      final keluargaResult = await _keluargaService!.getAllKeluarga();
 
       if (mounted) {
         setState(() {
+          // Parse rumah
           if (result['success'] == true && result['data'] != null) {
             final data = result['data'];
             if (data is Map && data['data'] is List) {
@@ -46,6 +56,21 @@ class _RumahAdminPageState extends State<RumahAdminPage> {
           } else {
             _rumahList = [];
           }
+          
+          // Parse keluarga
+          if (keluargaResult['success'] == true && keluargaResult['data'] != null) {
+            final keluargaData = keluargaResult['data'];
+            if (keluargaData is Map && keluargaData['data'] is List) {
+              _keluargaList = List<Map<String, dynamic>>.from(keluargaData['data']);
+            } else if (keluargaData is List) {
+              _keluargaList = List<Map<String, dynamic>>.from(keluargaData);
+            } else {
+              _keluargaList = [];
+            }
+          } else {
+            _keluargaList = [];
+          }
+          
           _isLoading = false;
         });
       }
@@ -53,6 +78,7 @@ class _RumahAdminPageState extends State<RumahAdminPage> {
       if (mounted) {
         setState(() {
           _rumahList = [];
+          _keluargaList = [];
           _isLoading = false;
         });
       }
@@ -178,16 +204,39 @@ class _RumahAdminPageState extends State<RumahAdminPage> {
 
   Widget _buildRumahCard(Map<String, dynamic> data) {
     final alamat = data['alamat']?.toString() ?? 'N/A';
-    final statusKepemilikan = data['statusKepemilikan']?.toString() ?? 'N/A';
+    // Backend uses lowercase field names: 'statuskepemilikan' and 'keluargaid'
+    final statusKepemilikanRaw = data['statuskepemilikan']?.toString();
+    // Format status kepemilikan
+    String statusKepemilikan = 'N/A';
+    if (statusKepemilikanRaw != null && statusKepemilikanRaw != 'null') {
+      if (statusKepemilikanRaw == 'milik_sendiri') {
+        statusKepemilikan = 'Milik Sendiri';
+      } else if (statusKepemilikanRaw == 'kontrak') {
+        statusKepemilikan = 'Kontrak';
+      } else {
+        statusKepemilikan = statusKepemilikanRaw;
+      }
+    }
+    
     // Backend uses 'jumlahpenghuni' (lowercase)
-    final jumlahPenghuni = (data['jumlahpenghuni'] ?? data['jumlahPenghuni'])?.toString() ?? '0';
-    final keluargaId = data['keluargaId'];
+    final jumlahPenghuni = data['jumlahpenghuni']?.toString() ?? '0';
+    final keluargaId = data['keluargaid']; // Backend uses lowercase 'keluargaid'
     final id = data['id'];
     final blok = data['blok']?.toString() ?? '';
     final nomorRumah = data['nomorRumah']?.toString() ?? '';
 
     // Determine if keluargaId is assigned
-    final hasKeluarga = keluargaId != null;
+    final hasKeluarga = keluargaId != null && keluargaId.toString() != 'null' && keluargaId.toString().isNotEmpty;
+    
+    // Get keluarga name from keluargaId
+    String? keluargaNama;
+    if (hasKeluarga) {
+      final keluarga = _keluargaList.firstWhere(
+        (k) => k['id'].toString() == keluargaId.toString(),
+        orElse: () => {},
+      );
+      keluargaNama = keluarga['namaKeluarga']?.toString();
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -238,9 +287,12 @@ class _RumahAdminPageState extends State<RumahAdminPage> {
                       ),
                     ),
                   ],
-                  onSelected: (value) {
+                  onSelected: (value) async {
                     if (value == 'edit') {
-                      context.push('/kelola-rumah/edit/$id', extra: data);
+                      final result = await context.push('/kelola-rumah/edit/$id', extra: data);
+                      if (result == true) {
+                        _loadData();
+                      }
                     } else if (value == 'delete') {
                       _handleDelete(id);
                     }
@@ -256,7 +308,7 @@ class _RumahAdminPageState extends State<RumahAdminPage> {
             _buildInfoRow('Jumlah Penghuni', '$jumlahPenghuni orang'),
             const SizedBox(height: 8),
             if (hasKeluarga)
-              _buildInfoRow('Keluarga ID', keluargaId.toString())
+              _buildInfoRow('Keluarga', keluargaNama ?? 'ID: $keluargaId')
             else
               Container(
                 padding: const EdgeInsets.all(12),
@@ -272,7 +324,7 @@ class _RumahAdminPageState extends State<RumahAdminPage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Keluarga ID belum di-assign',
+                        'Keluarga belum di-assign',
                         style: TextStyle(
                           color: Colors.orange.shade900,
                           fontSize: 13,
