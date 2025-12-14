@@ -20,6 +20,8 @@ import 'package:pbl_jawara_test/pages/admin/rumah_admin_page.dart';
 import 'package:pbl_jawara_test/pages/admin/rumah_admin_form_page.dart';
 import 'package:pbl_jawara_test/pages/admin/marketplace_admin_page.dart';
 import 'package:pbl_jawara_test/pages/admin/marketplace_form_page.dart';
+import 'package:pbl_jawara_test/pages/admin/kegiatan_page.dart';
+import 'package:pbl_jawara_test/pages/admin/broadcast_page.dart';
 import 'package:pbl_jawara_test/pages/warga/marketplace_warga_page.dart';
 import 'package:pbl_jawara_test/pages/transaksi/histori_transaksi_page.dart';
 import 'package:pbl_jawara_test/pages/warga/warga_self_register_page.dart';
@@ -292,6 +294,20 @@ final appRouter = GoRouter(
       path: '/histori-transaksi',
       name: 'histori-transaksi',
       builder: (context, state) => const HistoriTransaksiPage(),
+    ),
+    
+    // Kegiatan Warga route
+    GoRoute(
+      path: '/kegiatan',
+      name: 'kegiatan',
+      builder: (context, state) => const KegiatanPage(),
+    ),
+    
+    // Broadcast route
+    GoRoute(
+      path: '/broadcast',
+      name: 'broadcast',
+      builder: (context, state) => const BroadcastPage(),
     ),
   ],
 );
